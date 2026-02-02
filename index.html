@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Tages-Prompt Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f4f4f8;
+      margin: 0;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .app {
+      background: #ffffff;
+      max-width: 640px;
+      width: 100%;
+      border-radius: 12px;
+      padding: 20px 20px 24px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 4px;
+    }
+    .subtitle {
+      font-size: 0.9rem;
+      color: #555;
+      margin-bottom: 16px;
+    }
+    .progress {
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 12px;
+    }
+    .progress-bar-wrapper {
+      width: 100%;
+      height: 6px;
+      background: #e0e2ff;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0;
+      background: #4b5bff;
+      transition: width 0.2s ease;
+    }
+    .question {
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    button.option {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background: #fafafa;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s, border-color 0.15s, transform 0.05s;
+      font-size: 0.95rem;
+    }
+    button.option:hover {
+      background: #eef3ff;
+      border-color: #6371ff;
+    }
+    button.option.selected {
+      background: #dfe5ff;
+      border-color: #4b5bff;
+    }
+    .hint {
+      font-size: 0.8rem;
+      color: #777;
+      margin-bottom: 8px;
+    }
+    .hidden { display: none; }
+
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+      gap: 8px;
+    }
+    .nav button {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      flex: 1;
+    }
+    .nav button[disabled] {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .nav .next {
+      background: #4b5bff;
+      color: white;
+    }
+    .nav .prev {
+      background: #e0e0e0;
+    }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-family: inherit;
+      font-size: 0.9rem;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+
+    #result {
+      white-space: pre-wrap;
+      background: #f7f7ff;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 0.9rem;
+      border: 1px solid #dcdcff;
+      margin-top: 12px;
+    }
+
+    .copy-btn {
+      margin-top: 8px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.85rem;
+      background: #4b5bff;
+      color: white;
+    }
+
+    @media (max-width: 600px) {
+      .app {
+        padding: 16px 14px 20px;
+      }
+      button.option {
+        font-size: 0.9rem;
+      }
+      h1 {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Tages-Prompt Generator</h1>
+    <div class="subtitle">Beantworte ein paar Fragen, am Ende bekommst du einen fertigen Prompt für deine KI.</div>
+
+    <div class="progress">
+      <span id="progressText">Schritt 1 von 11</span>
+    </div>
+    <div class="progress-bar-wrapper">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div id="step-container">
+      <!-- Schritt 1: Tageszeit -->
+      <div class="step" data-step="1">
+        <div class="question">1. Wie spät ist es ungefähr gerade?</div>
+        <div class="options">
+          <button class="option" data-name="tageszeit" data-value="Morgen (06–11 Uhr)">Morgen (06–11 Uhr)</button>
+          <button class="option" data-name="tageszeit" data-value="Mittag/Früher Nachmittag (11–15 Uhr)">Mittag / Früher Nachmittag (11–15 Uhr)</button>
+          <button class="option" data-name="tageszeit" data-value="Später Nachmittag/Abend (15–22 Uhr)">Später Nachmittag / Abend (15–22 Uhr)</button>
+        </div>
+      </div>
+
+      <!-- Schritt 2: Energielevel -->
+      <div class="step hidden" data-step="2">
+        <div class="question">2. Wie ist dein aktueller Energielevel?</div>
+        <div class="options">
+          <button class="option" data-name="energie" data-value="niedrig (0–3/10)">0–3 (sehr low)</button>
+          <button class="option" data-name="energie" data-value="mittel (4–6/10)">4–6 (mittel)</button>
+          <button class="option" data-name="energie" data-value="hoch (7–10/10)">7–10 (hoch)</button>
+        </div>
+      </div>
+
+      <!-- Schritt 3: Tagesform -->
+      <div class="step hidden" data-step="3">
+        <div class="question">3. Wie fühlst du dich heute insgesamt?</div>
+        <div class="options">
+          <button class="option" data-name="tagesform" data-value="überfordert / gestresst">Überfordert / gestresst</button>
+          <button class="option" data-name="tagesform" data-value="neutral">Neutral</button>
+          <button class="option" data-name="tagesform" data-value="entspannt">Eher entspannt</button>
+          <button class="option" data-name="tagesform" data-value="motiviert">Eher motiviert</button>
+        </div>
+      </div>
+
+      <!-- Schritt 4: Bedürfnisse Mehrfachauswahl -->
+      <div class="step hidden" data-step="4">
+        <div class="question">4. Was brauchst du heute am meisten von der KI?</div>
+        <div class="hint">Du kannst mehrere auswählen (erneut tippen = abwählen).</div>
+        <div class="options">
+          <button class="option" data-name="beduerfnisse" data-value="Strukturierung des Tages">Strukturierung des Tages</button>
+          <button class="option" data-name="beduerfnisse" data-value="Motivation / Ermutigung">Motivation / Ermutigung</button>
+          <button class="option" data-name="beduerfnisse" data-value="sanfte Begleitung mit Nachfragen">Sanfte Begleitung mit Nachfragen</button>
+          <button class="option" data-name="beduerfnisse" data-value="klare Priorisierung meiner To-dos">Klare Priorisierung meiner To-dos</button>
+          <button class="option" data-name="beduerfnisse" data-value="Fokus auf wenige, wichtige Dinge">Fokus auf wenige, wichtige Dinge</button>
+        </div>
+      </div>
+
+      <!-- Schritt 5: Ton -->
+      <div class="step hidden" data-step="5">
+        <div class="question">5. Wie stark darf der „Coach-Ton“ sein?</div>
+        <div class="options">
+          <button class="option" data-name="ton" data-value="sehr sanft, freundlich, wenig Druck">Sehr sanft, freundlich, wenig Druck</button>
+          <button class="option" data-name="ton" data-value="neutral, sachlich">Neutral, sachlich</button>
+          <button class="option" data-name="ton" data-value="direkt, klar, eher pushend">Direkt, klar, eher pushend</button>
+        </div>
+      </div>
+
+      <!-- Schritt 6: Kleinschrittigkeit -->
+      <div class="step hidden" data-step="6">
+        <div class="question">6. Wie kleinschrittig sollen Aufgaben aufgeteilt werden?</div>
+        <div class="options">
+          <button class="option" data-name="kleinschrittigkeit" data-value="grob">Nur grobe Blöcke</button>
+          <button class="option" data-name="kleinschrittigkeit" data-value="mittel">Mittel (einige Teilschritte)</button>
+          <button class="option" data-name="kleinschrittigkeit" data-value="sehr kleinschrittig">Sehr kleinschrittig (Micro-Steps)</button>
+        </div>
+      </div>
+
+      <!-- Schritt 7: Gesamtzeit -->
+      <div class="step hidden" data-step="7">
+        <div class="question">7. Wie viel Zeit hast du heute insgesamt?</div>
+        <div class="options">
+          <button class="option" data-name="gesamtzeit" data-value="< 2 Stunden">Weniger als 2 Stunden</button>
+          <button class="option" data-name="gesamtzeit" data-value="2–4 Stunden">2–4 Stunden</button>
+          <button class="option" data-name="gesamtzeit" data-value="4–6 Stunden">4–6 Stunden</button>
+          <button class="option" data-name="gesamtzeit" data-value="> 6 Stunden">Mehr als 6 Stunden</button>
+        </div>
+      </div>
+
+      <!-- Schritt 8: Pausen -->
+      <div class="step hidden" data-step="8">
+        <div class="question">8. Wie stark soll die KI auf Pausen achten?</div>
+        <div class="options">
+          <button class="option" data-name="pausen" data-value="nur bei Bedarf">Kaum, nur wenn sinnvoll</button>
+          <button class="option" data-name="pausen" data-value="regelmäßig, alle 60–90 Minuten">Regelmäßig, alle 60–90 Minuten</button>
+          <button class="option" data-name="pausen" data-value="Pomodoro (25/5)">Sehr regelmäßig (z.B. Pomodoro)</button>
+        </div>
+      </div>
+
+      <!-- Schritt 9: To-dos -->
+      <div class="step hidden" data-step="9">
+        <div class="question">9. Welche To-dos möchtest du heute angehen?</div>
+        <textarea id="todos" rows="4" placeholder="z.B. Mail an XY, 2 Seiten Konzept, 15 Minuten Küche aufräumen..."></textarea>
+      </div>
+
+      <!-- Schritt 10: Deadlines -->
+      <div class="step hidden" data-step="10">
+        <div class="question">10. Gibt es Deadlines oder fixe Termine heute?</div>
+        <textarea id="deadlines" rows="3" placeholder="z.B. Meeting 15 Uhr, Mail bis 12 Uhr..."></textarea>
+      </div>
+
+      <!-- Schritt 11: Einschränkungen -->
+      <div class="step hidden" data-step="11">
+        <div class="question">11. Gibt es besondere Einschränkungen heute?</div>
+        <input type="text" id="einschraenkungen" placeholder="z.B. wenig Schlaf, viele Unterbrechungen, nichts Besonderes">
+      </div>
+
+      <!-- Ergebnis -->
+      <div class="step hidden" data-step="12">
+        <div class="question">Fertiger Prompt</div>
+        <div id="result"></div>
+        <button class="copy-btn" id="copyBtn">Prompt kopieren</button>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button class="prev" id="prevBtn" disabled>Zurück</button>
+      <button class="next" id="nextBtn">Weiter</button>
+    </div>
+  </div>
+
+  <script>
+    const steps = Array.from(document.querySelectorAll('.step'));
+    const totalStepsForProgress = 11; // letzte ist Ergebnis
+    let currentStep = 1;
+
+    const answers = {
+      beduerfnisse: []
+    };
+
+    function updateProgress() {
+      const progressText = document.getElementById('progressText');
+      const progressBar = document.getElementById('progressBar');
+      const stepForDisplay = Math.min(currentStep, totalStepsForProgress);
+      progressText.textContent = `Schritt ${stepForDisplay} von ${totalStepsForProgress}`;
+      const percent = (stepForDisplay - 1) / (totalStepsForProgress - 1) * 100;
+      progressBar.style.width = percent + '%';
+    }
+
+    function showStep(stepNumber) {
+      steps.forEach(step => {
+        step.classList.toggle('hidden', Number(step.dataset.step) !== stepNumber);
+      });
+      currentStep = stepNumber;
+      document.getElementById('prevBtn').disabled = currentStep === 1;
+      const nextBtn = document.getElementById('nextBtn');
+      nextBtn.textContent = currentStep === 12 ? 'Neu starten' : 'Weiter';
+      updateProgress();
+    }
+
+    // Klick auf Optionen
+    document.querySelectorAll('button.option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const name = btn.dataset.name;
+        const value = btn.dataset.value;
+
+        // Mehrfachauswahl für Bedürfnisse
+        if (name === 'beduerfnisse') {
+          btn.classList.toggle('selected');
+          const idx = answers.beduerfnisse.indexOf(value);
+          if (btn.classList.contains('selected')) {
+            if (idx === -1) answers.beduerfnisse.push(value);
+          } else {
+            if (idx !== -1) answers.beduerfnisse.splice(idx, 1);
+          }
+          return;
+        }
+
+        // Standard: genau eine Option
+        const siblings = btn.parentElement.querySelectorAll('button.option');
+        siblings.forEach(s => s.classList.remove('selected'));
+        btn.classList.add('selected');
+        answers[name] = value;
+      });
+    });
+
+    // Navigation
+    document.getElementById('prevBtn').addEventListener('click', () => {
+      if (currentStep > 1) {
+        showStep(currentStep - 1);
+      }
+    });
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+      if (currentStep < 11) {
+        showStep(currentStep + 1);
+      } else if (currentStep === 11) {
+        // Texte einsammeln & Prompt generieren
+        answers.todos = document.getElementById('todos').value.trim();
+        answers.deadlines = document.getElementById('deadlines').value.trim();
+        answers.einschraenkungen = document.getElementById('einschraenkungen').value.trim() || 'keine besonderen Einschränkungen';
+
+        const prompt = generatePrompt(answers);
+        document.getElementById('result').textContent = prompt;
+        showStep(12);
+      } else if (currentStep === 12) {
+        window.location.reload();
+      }
+    });
+
+    function generatePrompt(a) {
+      const beduerfnisseText = (a.beduerfnisse && a.beduerfnisse.length)
+        ? a.beduerfnisse.join(', ')
+        : (a.beduerfnis || '-');
+
+      return `Du bist mein persönliche*r Produktivitäts-Coach für heute.
+
+Kontext:
+- Tageszeit: ${a.tageszeit || '-'}
+- Energielevel: ${a.energie || '-'}
+- Tagesform / Stimmung: ${a.tagesform || '-'}
+- Gesamt verfügbare Zeit: ${a.gesamtzeit || '-'}
+- Einschränkungen: ${a.einschraenkungen || '-'}
+
+Meine Ziele für heute:
+- Hauptbedürfnisse: ${beduerfnisseText}
+- Gewünschter Ton: ${a.ton || '-'}
+
+Meine To-dos heute sind:
+${a.todos || '-'}
+
+Meine Deadlines / Fixtermine:
+${a.deadlines || '-'}
+
+Bitte erstelle daraus:
+1. Einen realistischen Tagesplan in Zeitblöcken, der zu meinem Energielevel passt.
+2. Eine priorisierte To-do-Liste (max. 3–5 Hauptaufgaben, Rest als „nice to have“).
+3. Die Aufgaben in ${a.kleinschrittigkeit || 'passendem'} Detailgrad aufgeschlüsselt.
+4. Vorschläge für Pausen nach meinem Wunsch: ${a.pausen || '-'}.
+5. Kurze motivierende Sätze, die zu meiner Tagesform passen, ohne Druck zu machen.
+
+Wichtige Regeln:
+- Passe die Menge der Aufgaben an meine verfügbare Zeit und meine Energie an.
+- Wenn ich zu viel vorhabe, hilf mir, bewusst zu streichen oder zu verschieben.
+- Stelle am Ende 2–3 Rückfragen, um den Plan noch besser auf mich abzustimmen.`;
+    }
+
+    // Kopier-Button
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      const text = document.getElementById('result').textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        alert('Prompt kopiert!');
+      } catch (e) {
+        alert('Kopieren nicht möglich, bitte manuell markieren und kopieren.');
+      }
+    });
+
+    // Start
+    showStep(1);
+  </script>
+</body>
+</html>
